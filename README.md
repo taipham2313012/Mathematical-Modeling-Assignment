@@ -7,7 +7,7 @@ Repo này gồm 3 task đầu của bài tập lớn:
 
 - **Task 1:** Đọc mô hình Petri từ file PNML  
 - **Task 2:** Tính reachable markings bằng BFS / DFS  
-- **Task 3:** Biểu diễn reachable set bằng BDD  
+- **Task 3:** Biểu diễn reachable set bằng BDD (thuật toán symbolic Pastor-Cortadella)
 
 ---
 
@@ -16,9 +16,9 @@ Repo này gồm 3 task đầu của bài tập lớn:
 ```text
 .
 ├── PetriNet.py       # Parse PNML và tạo ma trận I/O + M0
-├── BFS.py            # Reachability dùng BFS
-├── DFS.py            # Reachability dùng DFS
-├── BDD.py            # Reachability bằng BDD (từ tập explicit)
+├── BFS.py            # Reachability dùng BFS (explicit)
+├── DFS.py            # Reachability dùng DFS (explicit)
+├── BDD.py            # Reachability bằng BDD (symbolic)
 ├── main.py           # File chạy thử tất cả các task
 ├── SimpleMutex.pnml  # PNML mẫu
 └── README.md
@@ -49,9 +49,10 @@ python main.py
 
 1. Load mô hình từ `SimpleMutex.pnml`
 2. In danh sách place, transition, ma trận I/O và M0
-3. Chạy BFS + DFS để tính reachable markings
-4. Chạy BDD (từ danh sách reachable đã thu được)
-5. In số marking reachable theo từng phương pháp
+3. Chạy BFS để tính reachable markings (explicit)
+4. Chạy DFS để tính reachable markings (explicit)
+5. Chạy BDD để tính reachable set (symbolic)
+6. In số marking reachable và kích thước BDD DAG
 
 ---
 
@@ -99,18 +100,31 @@ Kết quả: **tập reachable markings**.
 
 ---
 
-### 3. Task 3 – Reachability bằng BDD
+### 3. Task 3 – Reachability bằng BDD (Symbolic)
 
 ```python
 bdd_reachable(pn)
 ```
 
-Cách làm:
+**Thuật toán symbolic theo Pastor-Cortadella:**
 
-1. Dùng BFS (giống Task 2) để liệt kê toàn bộ reachable markings
-2. Mỗi marking được mã hoá thành 1 biểu thức Boolean
-3. OR toàn bộ các biểu thức → reachable set
-4. Chuyển sang BDD bằng `expr2bdd`
+1. **Mã hóa trạng thái:** Mỗi place → 1 biến Boolean (1-safe assumption)
+2. **Transition relation R(X, X'):** Xây dựng hàm Boolean biểu diễn tất cả các chuyển trạng thái
+   - Điều kiện bật: Các place đầu vào phải có token
+   - Guard 1-safe: Không đặt token vào place đã có token (trừ khi consume)
+   - Cập nhật trạng thái mới X' dựa trên X
+3. **Fixed-point iteration:**
+   - Bắt đầu từ marking khởi đầu M0
+   - Lặp: Tính post-image bằng ∃X (F(X) ∧ R(X, X'))
+   - Thêm các trạng thái mới vào tập reachable
+   - Dừng khi không còn trạng thái mới
+
+**Ưu điểm:**
+- Compact: BDD biểu diễn tập trạng thái một cách nén
+- Efficient: Xử lý symbolic, tránh enum từng marking
+- Scalable: Tốt hơn explicit cho mô hình lớn
+
+**Kết quả:** Trả về `(BDD, số lượng marking)`
 
 ---
 ## Giới hạn
@@ -119,3 +133,12 @@ Cách làm:
 * Không chạy đúng với PNML có marking > 1
 * Chỉ hỗ trợ arc weight = 1
 * Không hỗ trợ dạng nâng cao (timed, colored, inhibitor…)
+
+---
+## TODO - Phần còn thiếu (polish để report đầy đủ hơn theo yêu cầu PDF)
+
+### Task 1 - PNML Parser
+ **Verify consistency:** Chưa kiểm tra missing arcs/nodes như yêu cầu trong đề bài
+
+### Task 3 - BDD Reachability  
+ **Performance comparison:** Chưa so sánh time & memory giữa explicit (BFS/DFS) và symbolic (BDD) approach
